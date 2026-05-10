@@ -1,0 +1,31 @@
+{
+  "name": "xmarks",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "xmarks": "./index.ts"
+  },
+  "scripts": {
+    "start": "bun run index.ts",
+    "auth": "bun run index.ts auth",
+    "me": "bun run index.ts me",
+    "fetch": "bun run index.ts fetch",
+    "thread": "bun run index.ts thread",
+    "tweet": "bun run index.ts tweet",
+    "article": "bun run index.ts article",
+    "video": "bun run index.ts video",
+    "image": "bun run index.ts image",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google-cloud/secret-manager": "^6.1.2",
+    "arctic": "^3.7.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

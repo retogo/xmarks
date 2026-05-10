@@ -1,0 +1,21 @@
+# Local .terraform directories
+.terraform/
+
+# Lock-file is committed by convention — keep it
+# .terraform.lock.hcl
+
+# .tfstate files (may contain secrets)
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Variable files (may contain project_id you do not want to share)
+*.tfvars
+*.tfvars.json
+
+# Local SA keys (never commit)
+sa-key.json
+*.sa.json
