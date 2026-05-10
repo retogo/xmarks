@@ -49,6 +49,36 @@ export const exchangeCode = async (
 };
 
 const REFRESH_LEEWAY_MS = 60_000;
+const X_TOKEN_ENDPOINT = "https://api.x.com/2/oauth2/token";
+
+const refreshTokens = async (config: Config, refreshToken: string): Promise<StoredTokens> => {
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+    client_id: config.x.clientId,
+  });
+  const headers: Record<string, string> = {
+    "Content-Type": "application/x-www-form-urlencoded",
+    Accept: "application/json",
+  };
+  if (config.x.clientSecret) {
+    headers.Authorization = "Basic " + btoa(`${config.x.clientId}:${config.x.clientSecret}`);
+  }
+  const res = await fetch(X_TOKEN_ENDPOINT, { method: "POST", headers, body });
+  if (!res.ok) {
+    throw new Error(`X token refresh failed: ${res.status} ${await res.text()}`);
+  }
+  const data = (await res.json()) as {
+    access_token: string;
+    refresh_token?: string;
+    expires_in: number;
+  };
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token ?? refreshToken,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+};
 
 export const loadAccessToken = async (
   config: Config,
@@ -61,9 +91,7 @@ export const loadAccessToken = async (
   if (!stored.refreshToken) {
     throw new Error("X access token expired and no refresh token. Re-run `xmarks auth`.");
   }
-  const client = createTwitterClient(config);
-  const refreshed = await client.refreshAccessToken(stored.refreshToken);
-  const next = tokensFromOAuth2(refreshed);
+  const next = await refreshTokens(config, stored.refreshToken);
   await secrets.put("x.oauth.tokens", JSON.stringify(next));
   return next.accessToken;
 };
