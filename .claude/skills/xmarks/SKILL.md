@@ -69,7 +69,7 @@ bun run fetch --source likes     --limit 30 --out .xmarks/cache/likes-<timestamp
 - スレッド取得は `/tweets/search/recent` で別途課金されるので、**KB 採用が決まったポストにだけ** 行う（後述 3-3）
 - 同じセッション内で再実行する場合は、保存済みキャッシュ（`.xmarks/cache/*.json`）を Read で読み直して再 fetch を避ける
 
-### 2. 既存Tags取得
+### 2. 既存Tags取得 + xmarks option 自動復旧
 ハードコードせず、毎回 fetch する。
 
 ```
@@ -78,6 +78,28 @@ mcp__notion__notion-fetch
 ```
 
 返ってきた `Tags.options` の `name` 配列を、以降のタグ選定の正規化リストとする。
+
+**xmarks option の存在チェック（必須）**:
+
+返ってきた options の name 配列に `"xmarks"` が含まれているか確認する。**含まれていなければ、ノート作成前に必ず ALTER で復旧する** — 含めずに create-pages を呼ぶと `Invalid multi_select value for property "Tags": "xmarks"` で 400 になる。
+
+復旧手順:
+```
+mcp__notion__notion-update-data-source
+  data_source_id: <DS_ID>
+  statements: ALTER COLUMN "Tags" SET MULTI_SELECT(
+    '<existing tag 1>':<color>,
+    '<existing tag 2>':<color>,
+    ...,
+    '<existing tag N>':<color>,
+    'xmarks':default
+  )
+```
+
+**重要**:
+- ALTER COLUMN SET は **全オプションを再定義**するので、fetch で取った既存全タグを必ず color 付きで列挙する（漏らすと既存タグが消える）
+- xmarks の color は `default`（provenance 用なのでコンテンツ系の色を使わない）
+- **既存ノートの xmarks 値は option 削除されても data として保持されている**（Notion は ghost 値として残す）。option 復旧と同時に再表示されるので、既存ノートの個別 update は不要
 
 ### 3. 各ポストの処理
 
