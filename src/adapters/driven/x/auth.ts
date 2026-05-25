@@ -1,6 +1,9 @@
-import { generateCodeVerifier, generateState, Twitter } from "arctic";
+import { CodeChallengeMethod, generateCodeVerifier, generateState, OAuth2Client } from "arctic";
 import type { Config } from "../../../config.ts";
 import type { SecretStore } from "../../../ports/driven/secret-store.ts";
+
+const AUTHORIZATION_ENDPOINT = "https://x.com/i/oauth2/authorize";
+const TOKEN_ENDPOINT = "https://api.x.com/2/oauth2/token";
 
 export const X_OAUTH_SCOPES = [
   "tweet.read",
@@ -16,14 +19,20 @@ export type StoredTokens = {
   expiresAt: number;
 };
 
-export const createTwitterClient = (config: Config) =>
-  new Twitter(config.x.clientId, config.x.clientSecret ?? null, config.x.redirectUri);
+const createClient = (config: Config) =>
+  new OAuth2Client(config.x.clientId, config.x.clientSecret ?? null, config.x.redirectUri);
 
 export const startAuthorization = (config: Config) => {
-  const client = createTwitterClient(config);
+  const client = createClient(config);
   const state = generateState();
   const codeVerifier = generateCodeVerifier();
-  const url = client.createAuthorizationURL(state, codeVerifier, X_OAUTH_SCOPES);
+  const url = client.createAuthorizationURLWithPKCE(
+    AUTHORIZATION_ENDPOINT,
+    state,
+    CodeChallengeMethod.S256,
+    codeVerifier,
+    X_OAUTH_SCOPES,
+  );
   return { url, state, codeVerifier };
 };
 
@@ -43,8 +52,8 @@ export const exchangeCode = async (
   code: string,
   codeVerifier: string,
 ): Promise<StoredTokens> => {
-  const client = createTwitterClient(config);
-  const tokens = await client.validateAuthorizationCode(code, codeVerifier);
+  const client = createClient(config);
+  const tokens = await client.validateAuthorizationCode(TOKEN_ENDPOINT, code, codeVerifier);
   return tokensFromOAuth2(tokens);
 };
 
@@ -61,8 +70,8 @@ export const loadAccessToken = async (
   if (!stored.refreshToken) {
     throw new Error("X access token expired and no refresh token. Re-run `xmarks auth`.");
   }
-  const client = createTwitterClient(config);
-  const refreshed = await client.refreshAccessToken(stored.refreshToken);
+  const client = createClient(config);
+  const refreshed = await client.refreshAccessToken(TOKEN_ENDPOINT, stored.refreshToken, []);
   const next = tokensFromOAuth2(refreshed);
   await secrets.put("x.oauth.tokens", JSON.stringify(next));
   return next.accessToken;
