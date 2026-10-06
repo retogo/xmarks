@@ -9,6 +9,10 @@ type CollectOptions = FetchOptions;
 
 const API_BASE = "https://api.x.com/2";
 
+// The bookmarks endpoint drops `next_token` when max_results is ~99 or more,
+// silently truncating results to the first page.
+const MAX_PAGE_SIZE = 50;
+
 const TWEET_FIELDS = [
   "id",
   "text",
@@ -68,7 +72,7 @@ export const createXClient = (config: Config, secrets: SecretStore): XSource => 
         "user.fields": USER_FIELDS,
         "media.fields": MEDIA_FIELDS,
         expansions: EXPANSIONS,
-        max_results: String(filtersActive ? 100 : (limit ?? 100)),
+        max_results: String(Math.min(filtersActive ? MAX_PAGE_SIZE : (limit ?? MAX_PAGE_SIZE), MAX_PAGE_SIZE)),
       };
       if (nextToken) params.pagination_token = nextToken;
       const res = await callJson<ListResponse>(path, params);
