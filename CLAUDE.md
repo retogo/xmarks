@@ -39,7 +39,6 @@ X の「いいね」「ブックマーク」を Notion Knowledge Base に取り�
 
 ```
 .claude/skills/xmarks/SKILL.md               # skill: ワークフローと判断基準
-terraform/                                   # GCP 側 IaC (GSM secret / SA / IAM)
 src/
 ├── domain/post.ts                           # Post / Thread / Article info
 ├── ports/
@@ -62,25 +61,14 @@ index.ts                                     # CLI エントリ
 
 毎日決まった時間に `/xmarks` を実行する場合の構成。
 
-### GCP 側準備（Terraform 管理）
+### GCP 側準備
 
-`terraform/` 以下で IaC 管理。詳細は `terraform/README.md`。
-
-```bash
-cd terraform
-terraform init
-terraform apply -var="project_id=<PROJECT>"
-$(terraform output -raw key_create_command)   # SA key JSON 発行（gcloud 経由）
-cd ..
-```
-
-Terraform が作るもの:
+GCP リソースはこのリポジトリでは管理しない（retogo の環境では retogo/infra の `apps/xmarks` で管理）。必要なもの:
 - `secretmanager.googleapis.com` 有効化
 - service account `xmarks-routine`
-- ロール: `secretmanager.{secretAccessor, secretVersionAdder, secretVersionManager}`
+- 上記 SA に secret 単位で `secretmanager.{secretAccessor, secretVersionAdder, secretVersionManager}`
 - secret `xmarks-x-oauth-tokens`（空、初回 `bun run auth` で初期 version が入る）
-
-SA key は tfstate に残さないため Terraform 管理外。`terraform output key_create_command` の通り `gcloud` で発行する。
+- SA key（`gcloud iam service-accounts keys create` で発行。リポジトリ内に置かない）
 
 ### ローカルでの初回ブートストラップ
 
@@ -89,7 +77,7 @@ GSM へ初回トークンを書き込む:
 ```bash
 SECRET_BACKEND=gsm \
 GOOGLE_CLOUD_PROJECT=<PROJECT> \
-GOOGLE_APPLICATION_CREDENTIALS=$PWD/terraform/sa-key.json \
+GOOGLE_APPLICATION_CREDENTIALS=<sa-key.json のパス> \
 X_CLIENT_ID=<...> bun run auth
 ```
 
