@@ -24,14 +24,10 @@ X Developer Portal の **User authentication settings** で:
 bun install
 cp .env.example .env   # X_CLIENT_ID, GOOGLE_CLOUD_PROJECT, XAI_API_KEY などを記入
 
-# GCP リソースを Terraform で構築
-gcloud auth application-default login
-echo 'project_id = "<your-project>"' > terraform/terraform.tfvars
-cd terraform && terraform init && terraform apply
-$(terraform output -raw key_create_command)   # ./sa-key.json 発行
-cd ..
+# SECRET_BACKEND=gsm の場合は、GCP に Secret `xmarks-x-oauth-tokens` と
+# それを読み書きできる SA を用意し、SA key を発行しておく（CLAUDE.md 参照）
 
-# 初回 OAuth（GSM にトークン保存）
+# 初回 OAuth（トークン保存）
 bun run auth
 ```
 
@@ -52,4 +48,4 @@ bun run fetch --source bookmarks --limit 5
 
 ---
 
-詳細は `CLAUDE.md` / `terraform/README.md` / `.claude/skills/xmarks/SKILL.md` を参照。
+詳細は `CLAUDE.md` / `.claude/skills/xmarks/SKILL.md` を参照。
